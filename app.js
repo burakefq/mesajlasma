@@ -24,6 +24,7 @@ const passwordInput = document.getElementById('password');
 const errorMessage = document.getElementById('error-message');
 const loginBtn = document.getElementById('login-btn');
 const signupBtn = document.getElementById('signup-btn');
+const forgotPasswordLink = document.getElementById('forgot-password-link'); // YENİ: Şifremi unuttum linki
 
 // profile.html için DOM elemanları
 const profileForm = document.getElementById('profile-form');
@@ -82,6 +83,23 @@ if (window.location.pathname.includes('index.html')) {
                 errorMessage.textContent = error.message;
             });
     });
+
+    // YENİ: Şifremi unuttum işlevi
+    forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const email = emailInput.value;
+        if (email) {
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    alert('Şifre sıfırlama linki e-posta adresinize gönderildi.');
+                })
+                .catch((error) => {
+                    alert('Hata: ' + error.message);
+                });
+        } else {
+            alert('Lütfen e-posta adresinizi girin.');
+        }
+    });
 }
 
 // Sadece profile.html sayfasında çalışacak kodlar
@@ -122,12 +140,14 @@ if (window.location.pathname.includes('chat.html')) {
 
         messages.forEach(message => {
             const messageElement = document.createElement('div');
-            messageElement.classList.add('message');
-            messageElement.classList.add(message.uid === auth.currentUser.uid ? 'sent-message' : 'received-message');
-            messageElement.innerHTML = `
-                <strong>${message.displayName || 'Anonim'}</strong><br>
-                ${message.text}
-            `;
+           messageElement.classList.add('message-bubble');
+           messageElement.classList.add(message.uid === auth.currentUser.uid ? 'sent-message' : 'received-message');
+          messageElement.innerHTML = `
+    <div class="message-sender">${message.displayName || 'Anonim'}</div>
+    <div class="message-text">${message.text}</div>
+`;
+
+
             chatMessages.appendChild(messageElement);
         });
         chatMessages.scrollTop = chatMessages.scrollHeight;
