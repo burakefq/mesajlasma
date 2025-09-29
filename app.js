@@ -24,7 +24,6 @@ const passwordInput = document.getElementById('password');
 const errorMessage = document.getElementById('error-message');
 const loginBtn = document.getElementById('login-btn');
 const signupBtn = document.getElementById('signup-btn');
-const forgotPasswordLink = document.getElementById('forgot-password-link');
 
 // profile.html için DOM elemanları
 const profileForm = document.getElementById('profile-form');
@@ -36,6 +35,9 @@ const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
 const userInfo = document.getElementById('user-info');
 const logoutBtn = document.getElementById('logout-btn');
+
+// YENİ: Aktif kullanıcı sayısı için DOM elemanı
+const onlineCount = document.getElementById('online-count');
 
 
 // Sayfa yönlendirme mantığı
@@ -50,12 +52,6 @@ auth.onAuthStateChanged(user => {
         else if (user.displayName && !window.location.pathname.includes('chat.html')) {
             window.location.href = 'chat.html';
         }
-        
-        // YENİ: Bildirim izni isteği
-        if ('Notification' in window) {
-            Notification.requestPermission();
-        }
-
     }
     // Kullanıcı oturum açmamışsa
     else {
@@ -89,23 +85,6 @@ if (window.location.pathname.includes('index.html')) {
                 errorMessage.textContent = error.message;
             });
     });
-
-    // Şifremi unuttum işlevi
-    forgotPasswordLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        const email = emailInput.value;
-        if (email) {
-            auth.sendPasswordResetEmail(email)
-                .then(() => {
-                    alert('Şifre sıfırlama linki e-posta adresinize gönderildi.');
-                })
-                .catch((error) => {
-                    alert('Hata: ' + error.message);
-                });
-        } else {
-            alert('Lütfen e-posta adresinizi girin.');
-        }
-    });
 }
 
 // Sadece profile.html sayfasında çalışacak kodlar
@@ -125,11 +104,24 @@ if (window.location.pathname.includes('profile.html')) {
 
 // Sadece chat.html sayfasında çalışacak kodlar
 if (window.location.pathname.includes('chat.html')) {
-    const originalTitle = document.title; // Sayfanın orijinal başlığını sakla
-    
     auth.onAuthStateChanged(user => {
         if (user) {
             userInfo.textContent = `Hoş Geldin, ${user.displayName}!`;
+
+            // YENİ: Firebase Realtime Database bağlantı durumu
+            const presenceRef = db.ref(`presence/${user.uid}`);
+
+            // Kullanıcı bağlantısı kesildiğinde otomatik olarak silinsin
+            presenceRef.onDisconnect().remove();
+
+            // Kullanıcı aktif olduğunda veritabanına yaz
+            presenceRef.set(true);
+
+            // Aktif kullanıcı sayısını dinle
+            db.ref("presence").on('value', (snapshot) => {
+                const count = snapshot.numChildren();
+                onlineCount.textContent = `${count} kişi aktif`;
+            });
         }
     });
 
@@ -145,32 +137,6 @@ if (window.location.pathname.includes('chat.html')) {
         });
 
         messages.sort((a, b) => a.createdAt - b.createdAt);
-        
-        // Yeni mesajı bulmak için son mesajı kontrol et
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage && lastMessage.uid !== auth.currentUser.uid && !document.hasFocus()) {
-            // YENİ: Bildirim gönder
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(lastMessage.displayName, {
-                    body: lastMessage.text,
-                    icon: 'https://pbs.twimg.com/profile_images/1258677537510764546/S3WhrKLo_400x400.jpg' // Okul logonu kullanabilirsin
-                });
-            }
-            
-            // YENİ: Sekme başlığını değiştir ve yanıp sönmesini sağla
-            let isFlashing = false;
-            const flashInterval = setInterval(() => {
-                document.title = isFlashing ? "Yeni Mesaj!" : originalTitle;
-                isFlashing = !isFlashing;
-            }, 1000);
-            
-            // Kullanıcı sayfaya geri döndüğünde sekme başlığını normale döndür
-            window.addEventListener('focus', () => {
-                clearInterval(flashInterval);
-                document.title = originalTitle;
-            }, { once: true });
-        }
-
 
         messages.forEach(message => {
             const messageElement = document.createElement('div');
