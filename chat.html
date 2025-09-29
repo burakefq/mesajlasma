@@ -1,34 +1,36 @@
-<!DOCTYPE-html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sohbet Odası</title>
+    <title>Sınıf Sohbeti</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="chat-container">
         <header class="chat-header">
             <h1 id="chat-title">Sınıf Sohbeti</h1>
-            <p id="user-info">Hoş Geldin...</p>
-            <button id="logout-btn">Çıkış Yap</button>
+            <div class="user-status-container">
+                <span id="user-info"></span>
+                <button id="logout-btn">Çıkış Yap</button>
+            </div>
         </header>
 
-        <main id="chat-messages" class="chat-messages"></main>
+          <main id="chat-messages" class="chat-messages"></main>
 
-        <form id="message-form" class="message-form">
-            <input type="text" id="message-input" placeholder="Mesajını yaz..." required>
-            <button type="submit">Gönder</button>
-        </form>
+            <form id="message-form" class="message-form">
+         <input type="text" id="message-input" placeholder="Mesajını yaz..." autocomplete="off" required>
+    <button type="submit" class="send-btn">➤</button>
+</form>
+
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
-
     <script src="app.js"></script>
 </body>
 </html>
