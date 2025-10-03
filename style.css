@@ -520,3 +520,59 @@ button:active {
     from { transform: translateY(-50px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
+/* --- YENİ EKLENEN STİLLER --- */
+
+/* 1. Kaydırma Sorunu Çözümü */
+.auth-container {
+    max-height: 95vh; /* Konteynerin maksimum yüksekliğini sınırla */
+    overflow-y: auto; /* Yüksekliği aşarsa dikey kaydırma çubuğu göster */
+    scrollbar-width: none; /* Firefox için kaydırma çubuğunu gizle */
+}
+
+.auth-container::-webkit-scrollbar {
+    display: none; /* Webkit (Chrome, Safari) için kaydırma çubuğunu gizle */
+}
+
+/* 2. Telefonla Giriş Butonu Stili (Toggle) */
+#show-phone-btn {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #4A90E2; /* Mavi Çerçeveli */
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: white; /* Beyaz Zemin */
+    color: #4A90E2; /* Mavi Yazı */
+    transition: all 0.3s ease;
+    margin-top: 1.5rem; /* Ayrım için */
+}
+
+#show-phone-btn:hover {
+    background-color: #f0f8ff; /* Hafif Mavi Arka Plan */
+    box-shadow: 0 4px 10px rgba(74, 144, 226, 0.2);
+}
+
+/* 3. Telefon Giriş Alanının Dizilimi */
+#phone-auth-container {
+    display: none; /* Başlangıçta gizli */
+    flex-direction: column;
+    gap: 10px;
+}
+
+#verification-area {
+    display: none; /* Başlangıçta gizli */
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* 4. Telefon Butonlarına Yeni Stil */
+#send-code-btn, #verify-code-btn {
+    background-color: #00b894; /* Yeşil (Girişten farklı) */
+    color: white;
+    margin-top: 0.5rem;
+}
+
+#send-code-btn:hover, #verify-code-btn:hover {
+    background-color: #00a07a;
+}
