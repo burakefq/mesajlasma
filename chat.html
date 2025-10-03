@@ -7,43 +7,25 @@
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="rooms-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn">&times;</span>
-            <h2>Odalar</h2>
-            <div id="room-list"></div>
-
-            <hr>
-
-            <h3>Yeni Oda Oluştur</h3>
-            <form id="create-room-form" class="form-container">
-                <input type="text" id="room-name-input" placeholder="Oda Adı" required>
-                <input type="password" id="room-password-input" placeholder="Şifre (isteğe bağlı)">
-                <button type="submit">Odayı Oluştur</button>
-            </form>
-        </div>
-    </div>
-
     <div class="chat-container">
         <header class="chat-header">
-            <h1 id="chat-title">Genel Sohbet</h1>
-            <span id="online-count">0 kişi aktif</span>
-            <button id="rooms-btn">Odalar</button>
+            <h1 id="chat-title">Genel Sınıf Sohbeti</h1>
             <div class="user-status-container">
                 <span id="user-info"></span>
+                <span id="online-count" class="online-count">0 kişi aktif</span>
                 <button id="logout-btn">Çıkış Yap</button>
             </div>
         </header>
 
-          <main id="chat-messages" class="chat-messages"></main>
+        <main id="chat-messages" class="chat-messages"></main>
 
-            <form id="message-form" class="message-form">
-         <input type="text" id="message-input" placeholder="Mesajını yaz..." autocomplete="off" required>
-    <button type="submit" class="send-btn">➤</button>
-</form>
+        <form id="message-form" class="message-form">
+            <input type="text" id="message-input" placeholder="Mesajını yaz..." autocomplete="off" required>
+            <button type="submit" class="send-btn">➤</button>
+        </form>
 
     </div>
 
@@ -53,4 +35,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
