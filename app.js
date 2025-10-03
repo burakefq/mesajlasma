@@ -26,13 +26,15 @@ const loginBtn = document.getElementById('login-btn');
 const signupBtn = document.getElementById('signup-btn');
 const forgotPasswordLink = document.getElementById('forgot-password-link');
 
-// YENİ EKLEMELER
+// Telefon Giriş DOM elemanları
 const phoneNumberInput = document.getElementById('phone-number');
 const sendCodeBtn = document.getElementById('send-code-btn');
 const verifyCodeBtn = document.getElementById('verify-code-btn');
 const verificationArea = document.getElementById('verification-area');
 const verificationCodeInput = document.getElementById('verification-code');
 const recaptchaContainer = document.getElementById('recaptcha-container');
+const showPhoneBtn = document.getElementById('show-phone-btn');
+const phoneAuthContainer = document.getElementById('phone-auth-container'); // Görünürlük için
 
 // Global değişkenler
 let confirmationResult = null; // Doğrulama sonucunu saklamak için
@@ -47,20 +49,10 @@ const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
 const userInfo = document.getElementById('user-info');
 const logoutBtn = document.getElementById('logout-btn');
-const roomsBtn = document.getElementById('rooms-btn');
-const roomsModal = document.getElementById('rooms-modal');
-const closeModalBtn = document.querySelector('.close-btn');
-const roomList = document.getElementById('room-list');
-const createRoomForm = document.getElementById('create-room-form');
-const roomNameInput = document.getElementById('room-name-input');
-const roomPasswordInput = document.getElementById('room-password-input');
 const onlineCount = document.getElementById('online-count');
 const chatTitle = document.getElementById('chat-title');
 
-
-let currentRoomId = 'general';
-
-// Şifre hashleme için basit bir fonksiyon
+// Şifre hashleme fonksiyonu (Artık kullanılmıyor ama uyumluluk için tutulabilir)
 const md5Hash = (str) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -99,16 +91,16 @@ if (window.location.pathname.includes('index.html')) {
 
     // reCAPTCHA doğrulayıcıyı başlat
     window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(recaptchaContainer, {
-        'size': 'invisible', // Butona gömülü görünmez reCAPTCHA
+        'size': 'invisible',
         'callback': (response) => {
-            // reCAPTCHA başarılı, SMS gönderilebilir
+            // reCAPTCHA başarılı
         },
         'expired-callback': () => {
             errorMessage.textContent = 'Güvenlik doğrulaması sona erdi. Tekrar deneyin.';
         }
     });
 
-    // E-posta/Şifre Giriş Formu
+    // E-posta/Şifre Giriş/Kayıt
     if (authForm) {
         authForm.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -153,14 +145,33 @@ if (window.location.pathname.includes('index.html')) {
         });
     }
 
-    // YENİ SMS GÖNDERME İŞLEVİ
+    // Telefonla Giriş Alanını Göster/Gizle
+    if (showPhoneBtn) {
+        showPhoneBtn.addEventListener('click', () => {
+            if (phoneAuthContainer.style.display === 'flex') {
+                phoneAuthContainer.style.display = 'none';
+                showPhoneBtn.textContent = '📞 Telefon Numarasıyla Giriş';
+            } else {
+                phoneAuthContainer.style.display = 'flex';
+                showPhoneBtn.textContent = 'Telefon Girişini Gizle';
+            }
+        });
+    }
+
+    // SMS GÖNDERME İŞLEVİ
     if (sendCodeBtn) {
         sendCodeBtn.addEventListener('click', () => {
-            const phoneNumber = phoneNumberInput.value;
+            let phoneNumber = phoneNumberInput.value.trim();
+            // Kullanıcı +90 girmediyse otomatik ekle ve boşlukları temizle
+            if (!phoneNumber.startsWith('+90')) {
+                phoneNumber = '+90' + phoneNumber.replace(/\s/g, '');
+            }
+
             errorMessage.textContent = '';
 
-            if (!phoneNumber || phoneNumber.length < 10) {
-                errorMessage.textContent = 'Lütfen geçerli bir telefon numarası girin.';
+            // Telefon numarasının geçerli bir uzunlukta (+90 dahil 13 hane) olmasını kontrol et
+            if (phoneNumber.length < 13) {
+                errorMessage.textContent = 'Lütfen +90 ile başlayan geçerli bir telefon numarası girin.';
                 return;
             }
 
@@ -169,21 +180,24 @@ if (window.location.pathname.includes('index.html')) {
             auth.signInWithPhoneNumber(phoneNumber, appVerifier)
                 .then((confirmation) => {
                     confirmationResult = confirmation;
-                    sendCodeBtn.style.display = 'none'; // Kod gönderme butonunu gizle
-                    verificationArea.style.display = 'flex'; // Kod giriş alanını göster
+                    sendCodeBtn.style.display = 'none';
+                    verificationArea.style.display = 'flex';
                     phoneNumberInput.disabled = true;
                     alert('Doğrulama kodu telefonunuza gönderildi!');
                 })
                 .catch((error) => {
                     errorMessage.textContent = 'SMS gönderme hatası: ' + error.message;
-                    window.recaptchaVerifier.render().then(function(widgetId) {
-                        grecaptcha.reset(widgetId); // Hata durumunda reCAPTCHA'yı sıfırla
-                    });
+                    // Hata durumunda reCAPTCHA'yı sıfırla
+                    if (grecaptcha && grecaptcha.reset) {
+                        window.recaptchaVerifier.render().then(function(widgetId) {
+                            grecaptcha.reset(widgetId);
+                        });
+                    }
                 });
         });
     }
 
-    // YENİ SMS KODU DOĞRULAMA İŞLEVİ
+    // SMS KODU DOĞRULAMA İŞLEVİ
     if (verifyCodeBtn) {
         verifyCodeBtn.addEventListener('click', () => {
             const code = verificationCodeInput.value;
@@ -197,8 +211,6 @@ if (window.location.pathname.includes('index.html')) {
             if (confirmationResult) {
                 confirmationResult.confirm(code)
                     .then((result) => {
-                        // Giriş başarılı, authStateChanged yönlendirmeyi yapacak.
-                        // Kullanıcı yeni ise profile.html'ye, eski ise chat.html'ye gider.
                         console.log('Telefonla giriş başarılı:', result.user);
                     })
                     .catch((error) => {
@@ -255,60 +267,50 @@ if (window.location.pathname.includes('chat.html')) {
         });
     }
 
-    // Oda değiştirme ve mesajları dinleme fonksiyonu
-    const switchRoom = (roomId) => {
-        currentRoomId = roomId;
-        chatTitle.textContent = roomId === 'general' ? 'Genel Sohbet' : `Özel Oda: ${roomId}`;
+    // YENİ: Tek bir ana sohbet kanalını dinle (önceden "general" odasıydı, şimdi doğrudan "messages" altındaki mesajlar)
+    db.ref("messages").on('value', (snapshot) => {
+        chatMessages.innerHTML = '';
+        const messages = [];
+        snapshot.forEach(childSnapshot => {
+            messages.push(childSnapshot.val());
+        });
+        messages.sort((a, b) => a.createdAt - b.createdAt);
 
-        // Önceki odanın dinleyicisini kapat
-        db.ref(`rooms/${currentRoomId}/messages`).off('value');
-
-        // Yeni odanın mesajlarını dinle
-        db.ref(`rooms/${currentRoomId}/messages`).on('value', (snapshot) => {
-            chatMessages.innerHTML = '';
-            const messages = [];
-            snapshot.forEach(childSnapshot => {
-                messages.push(childSnapshot.val());
-            });
-            messages.sort((a, b) => a.createdAt - b.createdAt);
-
-            const lastMessage = messages[messages.length - 1];
-            // Yeni mesaj geldiğinde ve pencere odaklanmamışsa bildirim ve başlık flaşlama
-            if (lastMessage && auth.currentUser && lastMessage.uid !== auth.currentUser.uid && !document.hasFocus()) {
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification(lastMessage.displayName, {
-                        body: lastMessage.text,
-                        icon: 'https://pbs.twimg.com/profile_images/1258677537510764546/S3WhrKLo_400x400.jpg'
-                    });
-                }
-
-                let isFlashing = false;
-                const flashInterval = setInterval(() => {
-                    document.title = isFlashing ? "Yeni Mesaj!" : originalTitle;
-                    isFlashing = !isFlashing;
-                }, 1000);
-
-                window.addEventListener('focus', () => {
-                    clearInterval(flashInterval);
-                    document.title = originalTitle;
-                }, { once: true });
+        const lastMessage = messages[messages.length - 1];
+        // Yeni mesaj geldiğinde ve pencere odaklanmamışsa bildirim
+        if (lastMessage && auth.currentUser && lastMessage.uid !== auth.currentUser.uid && !document.hasFocus()) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(lastMessage.displayName, {
+                    body: lastMessage.text,
+                    icon: 'https://pbs.twimg.com/profile_images/1258677537510764546/S3WhrKLo_400x400.jpg'
+                });
             }
 
+            let isFlashing = false;
+            const flashInterval = setInterval(() => {
+                document.title = isFlashing ? "Yeni Mesaj!" : originalTitle;
+                isFlashing = !isFlashing;
+            }, 1000);
 
-            messages.forEach(message => {
-                const messageElement = document.createElement('div');
-                messageElement.classList.add('message-bubble');
-                messageElement.classList.add(auth.currentUser && message.uid === auth.currentUser.uid ? 'sent-message' : 'received-message');
-                messageElement.innerHTML = `
-                    <div class="message-sender">${message.displayName || 'Anonim'}</div>
-                    <div class="message-text">${message.text}</div>
-                `;
-                chatMessages.appendChild(messageElement);
-            });
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            window.addEventListener('focus', () => {
+                clearInterval(flashInterval);
+                document.title = originalTitle;
+            }, { once: true });
+        }
+
+
+        messages.forEach(message => {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message-bubble');
+            messageElement.classList.add(auth.currentUser && message.uid === auth.currentUser.uid ? 'sent-message' : 'received-message');
+            messageElement.innerHTML = `
+                <div class="message-sender">${message.displayName || 'Anonim'}</div>
+                <div class="message-text">${message.text}</div>
+            `;
+            chatMessages.appendChild(messageElement);
         });
-        if(roomsModal) roomsModal.style.display = 'none';
-    };
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
 
     // Mesaj gönderme
     if (messageForm) {
@@ -316,8 +318,8 @@ if (window.location.pathname.includes('chat.html')) {
             e.preventDefault();
             const user = auth.currentUser;
             if (user && messageInput.value.trim() !== '') {
-                // Mesajı aktif odanın altına yaz
-                const newMessageRef = db.ref(`rooms/${currentRoomId}/messages`).push();
+                // Mesajı doğrudan "messages" altına yaz
+                const newMessageRef = db.ref("messages").push();
                 await newMessageRef.set({
                     text: messageInput.value,
                     createdAt: Date.now(),
@@ -328,81 +330,4 @@ if (window.location.pathname.includes('chat.html')) {
             }
         });
     }
-
-    // Odalar modalını açma ve listeyi yükleme
-    if(roomsBtn) {
-      roomsBtn.addEventListener('click', () => {
-          roomsModal.style.display = 'flex';
-          db.ref('rooms').on('value', (snapshot) => {
-              roomList.innerHTML = '';
-
-              // Genel sohbet odasını en üste ekle
-              const generalRoomItem = document.createElement('div');
-              generalRoomItem.classList.add('room-item');
-              generalRoomItem.innerHTML = `<span class="room-item-name">Genel Sohbet</span>`;
-              generalRoomItem.addEventListener('click', () => switchRoom('general'));
-              roomList.appendChild(generalRoomItem);
-
-              // Özel odaları listele
-              snapshot.forEach(childSnapshot => {
-                  const roomData = childSnapshot.val();
-                  const roomId = childSnapshot.key;
-                  const roomItem = document.createElement('div');
-                  roomItem.classList.add('room-item');
-                  roomItem.innerHTML = `
-                      <span class="room-item-name">${roomData.name}</span>
-                      ${roomData.password ? '<span class="lock-icon">🔒</span>' : ''}
-                  `;
-                  roomList.appendChild(roomItem);
-
-                  roomItem.addEventListener('click', () => {
-                      if (roomData.password) {
-                          const enteredPassword = prompt('Bu oda şifre korumalı. Lütfen şifreyi girin:');
-                          if (enteredPassword && md5Hash(enteredPassword) === roomData.password) {
-                              switchRoom(roomId);
-                          } else {
-                              alert('Yanlış şifre!');
-                          }
-                      } else {
-                          switchRoom(roomId);
-                      }
-                  });
-              });
-
-          });
-      });
-    }
-
-    // Yeni oda oluşturma
-    if(createRoomForm) {
-      createRoomForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const roomName = roomNameInput.value;
-          const password = roomPasswordInput.value;
-          const user = auth.currentUser;
-
-          if (user) {
-              const newRoomRef = db.ref('rooms').push();
-              await newRoomRef.set({
-                  name: roomName,
-                  createdAt: Date.now(),
-                  createdBy: user.uid,
-                  password: password ? md5Hash(password) : null
-              });
-              roomNameInput.value = '';
-              roomPasswordInput.value = '';
-              switchRoom(newRoomRef.key);
-          }
-      });
-    }
-
-    // Modalı kapatma
-    if(closeModalBtn) {
-      closeModalBtn.addEventListener('click', () => {
-          roomsModal.style.display = 'none';
-      });
-    }
-
-    // Uygulama başladığında genel odayı aç
-    switchRoom('general');
 }
