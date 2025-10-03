@@ -26,6 +26,17 @@ const loginBtn = document.getElementById('login-btn');
 const signupBtn = document.getElementById('signup-btn');
 const forgotPasswordLink = document.getElementById('forgot-password-link');
 
+// YENİ EKLEMELER
+const phoneNumberInput = document.getElementById('phone-number');
+const sendCodeBtn = document.getElementById('send-code-btn');
+const verifyCodeBtn = document.getElementById('verify-code-btn');
+const verificationArea = document.getElementById('verification-area');
+const verificationCodeInput = document.getElementById('verification-code');
+const recaptchaContainer = document.getElementById('recaptcha-container');
+
+// Global değişkenler
+let confirmationResult = null; // Doğrulama sonucunu saklamak için
+
 // profile.html için DOM elemanları
 const profileForm = document.getElementById('profile-form');
 const usernameInput = document.getElementById('username-input');
@@ -47,9 +58,9 @@ const onlineCount = document.getElementById('online-count');
 const chatTitle = document.getElementById('chat-title');
 
 
-let currentRoomId = 'general'; // Varsayılan olarak genel sohbet odası
+let currentRoomId = 'general';
 
-// Şifre hashleme için basit bir fonksiyon (Güvenlik için daha gelişmiş kütüphaneler önerilir)
+// Şifre hashleme için basit bir fonksiyon
 const md5Hash = (str) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -62,26 +73,20 @@ const md5Hash = (str) => {
 
 // Sayfa yönlendirme mantığı
 auth.onAuthStateChanged(user => {
-    // Kullanıcı oturum açmışsa
     if (user) {
-        // Kullanıcı adı ayarlı değilse ve profil sayfasında değilse
         if (!user.displayName && !window.location.pathname.includes('profile.html')) {
             window.location.href = 'profile.html';
         }
-        // Kullanıcı adı ayarlıysa ve sohbet sayfasında değilse
         else if (user.displayName && !window.location.pathname.includes('chat.html')) {
             window.location.href = 'chat.html';
         }
 
-        // Bildirim izni isteği
         if ('Notification' in window) {
             Notification.requestPermission();
         }
 
     }
-    // Kullanıcı oturum açmamışsa
     else {
-        // Eğer giriş/kayıt sayfasında değilse, oraya yönlendir
         if (!window.location.pathname.includes('index.html')) {
             window.location.href = 'index.html';
         }
@@ -91,57 +96,135 @@ auth.onAuthStateChanged(user => {
 
 // Sadece index.html sayfasında çalışacak kodlar
 if (window.location.pathname.includes('index.html')) {
-    authForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const email = emailInput.value;
-        const password = passwordInput.value;
-        if (e.submitter.id === 'login-btn') {
-            auth.signInWithEmailAndPassword(email, password)
+
+    // reCAPTCHA doğrulayıcıyı başlat
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(recaptchaContainer, {
+        'size': 'invisible', // Butona gömülü görünmez reCAPTCHA
+        'callback': (response) => {
+            // reCAPTCHA başarılı, SMS gönderilebilir
+        },
+        'expired-callback': () => {
+            errorMessage.textContent = 'Güvenlik doğrulaması sona erdi. Tekrar deneyin.';
+        }
+    });
+
+    // E-posta/Şifre Giriş Formu
+    if (authForm) {
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            if (e.submitter.id === 'login-btn') {
+                auth.signInWithEmailAndPassword(email, password)
+                    .catch((error) => {
+                        errorMessage.textContent = error.message;
+                    });
+            }
+        });
+    }
+
+    if (signupBtn) {
+        signupBtn.addEventListener('click', () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            auth.createUserWithEmailAndPassword(email, password)
                 .catch((error) => {
                     errorMessage.textContent = error.message;
                 });
-        }
-    });
-
-    signupBtn.addEventListener('click', () => {
-        const email = emailInput.value;
-        const password = passwordInput.value;
-        auth.createUserWithEmailAndPassword(email, password)
-            .catch((error) => {
-                errorMessage.textContent = error.message;
-            });
-    });
+        });
+    }
 
     // Şifremi unuttum işlevi
-    forgotPasswordLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        const email = emailInput.value;
-        if (email) {
-            auth.sendPasswordResetEmail(email)
-                .then(() => {
-                    alert('Şifre sıfırlama linki e-posta adresinize gönderildi.');
+    if (forgotPasswordLink) {
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            const email = emailInput.value;
+            if (email) {
+                auth.sendPasswordResetEmail(email)
+                    .then(() => {
+                        alert('Şifre sıfırlama linki e-posta adresinize gönderildi. Lütfen e-postanızı kontrol edin.');
+                    })
+                    .catch((error) => {
+                        alert('Hata: ' + error.message);
+                    });
+            } else {
+                alert('Lütfen e-posta adresinizi girin.');
+            }
+        });
+    }
+
+    // YENİ SMS GÖNDERME İŞLEVİ
+    if (sendCodeBtn) {
+        sendCodeBtn.addEventListener('click', () => {
+            const phoneNumber = phoneNumberInput.value;
+            errorMessage.textContent = '';
+
+            if (!phoneNumber || phoneNumber.length < 10) {
+                errorMessage.textContent = 'Lütfen geçerli bir telefon numarası girin.';
+                return;
+            }
+
+            const appVerifier = window.recaptchaVerifier;
+
+            auth.signInWithPhoneNumber(phoneNumber, appVerifier)
+                .then((confirmation) => {
+                    confirmationResult = confirmation;
+                    sendCodeBtn.style.display = 'none'; // Kod gönderme butonunu gizle
+                    verificationArea.style.display = 'flex'; // Kod giriş alanını göster
+                    phoneNumberInput.disabled = true;
+                    alert('Doğrulama kodu telefonunuza gönderildi!');
                 })
                 .catch((error) => {
-                    alert('Hata: ' + error.message);
+                    errorMessage.textContent = 'SMS gönderme hatası: ' + error.message;
+                    window.recaptchaVerifier.render().then(function(widgetId) {
+                        grecaptcha.reset(widgetId); // Hata durumunda reCAPTCHA'yı sıfırla
+                    });
                 });
-        } else {
-            alert('Lütfen e-posta adresinizi girin.');
-        }
-    });
+        });
+    }
+
+    // YENİ SMS KODU DOĞRULAMA İŞLEVİ
+    if (verifyCodeBtn) {
+        verifyCodeBtn.addEventListener('click', () => {
+            const code = verificationCodeInput.value;
+            errorMessage.textContent = '';
+
+            if (!code || code.length !== 6) {
+                errorMessage.textContent = 'Lütfen 6 haneli kodu girin.';
+                return;
+            }
+
+            if (confirmationResult) {
+                confirmationResult.confirm(code)
+                    .then((result) => {
+                        // Giriş başarılı, authStateChanged yönlendirmeyi yapacak.
+                        // Kullanıcı yeni ise profile.html'ye, eski ise chat.html'ye gider.
+                        console.log('Telefonla giriş başarılı:', result.user);
+                    })
+                    .catch((error) => {
+                        errorMessage.textContent = 'Kod doğrulama hatası: ' + error.message;
+                    });
+            } else {
+                errorMessage.textContent = 'Önce doğrulama kodu göndermelisiniz.';
+            }
+        });
+    }
 }
 
 // Sadece profile.html sayfasında çalışacak kodlar
 if (window.location.pathname.includes('profile.html')) {
-    profileForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const user = auth.currentUser;
-        if (user && usernameInput.value.trim() !== '') {
-            await user.updateProfile({
-                displayName: usernameInput.value.trim()
-            });
-            window.location.href = 'chat.html';
-        }
-    });
+    if (profileForm) {
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (user && usernameInput.value.trim() !== '') {
+                await user.updateProfile({
+                    displayName: usernameInput.value.trim()
+                });
+                window.location.href = 'chat.html';
+            }
+        });
+    }
 }
 
 
@@ -151,15 +234,11 @@ if (window.location.pathname.includes('chat.html')) {
 
     auth.onAuthStateChanged(user => {
         if (user) {
-            userInfo.textContent = `Hoş Geldin, ${user.displayName}!`;
+            userInfo.textContent = `Hoş Geldin, ${user.displayName || 'Anonim'}!`;
 
-            // Firebase Realtime Database bağlantı durumu
+            // Aktiflik (Presence) ayarı
             const presenceRef = db.ref(`presence/${user.uid}`);
-
-            // Kullanıcı bağlantısı kesildiğinde otomatik olarak silinsin
             presenceRef.onDisconnect().remove();
-
-            // Kullanıcı aktif olduğunda veritabanına yaz
             presenceRef.set(true);
 
             // Aktif kullanıcı sayısını dinle
@@ -170,15 +249,18 @@ if (window.location.pathname.includes('chat.html')) {
         }
     });
 
-    logoutBtn.addEventListener('click', () => {
-        auth.signOut();
-    });
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut();
+        });
+    }
 
+    // Oda değiştirme ve mesajları dinleme fonksiyonu
     const switchRoom = (roomId) => {
         currentRoomId = roomId;
         chatTitle.textContent = roomId === 'general' ? 'Genel Sohbet' : `Özel Oda: ${roomId}`;
 
-        // Önceki dinleyiciyi kapat
+        // Önceki odanın dinleyicisini kapat
         db.ref(`rooms/${currentRoomId}/messages`).off('value');
 
         // Yeni odanın mesajlarını dinle
@@ -191,8 +273,8 @@ if (window.location.pathname.includes('chat.html')) {
             messages.sort((a, b) => a.createdAt - b.createdAt);
 
             const lastMessage = messages[messages.length - 1];
-            if (lastMessage && lastMessage.uid !== auth.currentUser.uid && !document.hasFocus()) {
-                // Bildirim gönder
+            // Yeni mesaj geldiğinde ve pencere odaklanmamışsa bildirim ve başlık flaşlama
+            if (lastMessage && auth.currentUser && lastMessage.uid !== auth.currentUser.uid && !document.hasFocus()) {
                 if ('Notification' in window && Notification.permission === 'granted') {
                     new Notification(lastMessage.displayName, {
                         body: lastMessage.text,
@@ -216,7 +298,7 @@ if (window.location.pathname.includes('chat.html')) {
             messages.forEach(message => {
                 const messageElement = document.createElement('div');
                 messageElement.classList.add('message-bubble');
-                messageElement.classList.add(message.uid === auth.currentUser.uid ? 'sent-message' : 'received-message');
+                messageElement.classList.add(auth.currentUser && message.uid === auth.currentUser.uid ? 'sent-message' : 'received-message');
                 messageElement.innerHTML = `
                     <div class="message-sender">${message.displayName || 'Anonim'}</div>
                     <div class="message-text">${message.text}</div>
@@ -228,27 +310,40 @@ if (window.location.pathname.includes('chat.html')) {
         if(roomsModal) roomsModal.style.display = 'none';
     };
 
-    // Mesaj gönderme fonksiyonu
-    messageForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const user = auth.currentUser;
-        if (user && messageInput.value.trim() !== '') {
-            const newMessageRef = db.ref(`rooms/${currentRoomId}/messages`).push();
-            await newMessageRef.set({
-                text: messageInput.value,
-                createdAt: Date.now(),
-                uid: user.uid,
-                displayName: user.displayName
-            });
-            messageInput.value = '';
-        }
-    });
+    // Mesaj gönderme
+    if (messageForm) {
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (user && messageInput.value.trim() !== '') {
+                // Mesajı aktif odanın altına yaz
+                const newMessageRef = db.ref(`rooms/${currentRoomId}/messages`).push();
+                await newMessageRef.set({
+                    text: messageInput.value,
+                    createdAt: Date.now(),
+                    uid: user.uid,
+                    displayName: user.displayName
+                });
+                messageInput.value = '';
+            }
+        });
+    }
 
+    // Odalar modalını açma ve listeyi yükleme
     if(roomsBtn) {
       roomsBtn.addEventListener('click', () => {
           roomsModal.style.display = 'flex';
           db.ref('rooms').on('value', (snapshot) => {
               roomList.innerHTML = '';
+
+              // Genel sohbet odasını en üste ekle
+              const generalRoomItem = document.createElement('div');
+              generalRoomItem.classList.add('room-item');
+              generalRoomItem.innerHTML = `<span class="room-item-name">Genel Sohbet</span>`;
+              generalRoomItem.addEventListener('click', () => switchRoom('general'));
+              roomList.appendChild(generalRoomItem);
+
+              // Özel odaları listele
               snapshot.forEach(childSnapshot => {
                   const roomData = childSnapshot.val();
                   const roomId = childSnapshot.key;
@@ -273,15 +368,12 @@ if (window.location.pathname.includes('chat.html')) {
                       }
                   });
               });
-              const generalRoomItem = document.createElement('div');
-              generalRoomItem.classList.add('room-item');
-              generalRoomItem.innerHTML = `<span class="room-item-name">Genel Sohbet</span>`;
-              generalRoomItem.addEventListener('click', () => switchRoom('general'));
-              roomList.prepend(generalRoomItem);
+
           });
       });
     }
 
+    // Yeni oda oluşturma
     if(createRoomForm) {
       createRoomForm.addEventListener('submit', async (e) => {
           e.preventDefault();
@@ -304,11 +396,13 @@ if (window.location.pathname.includes('chat.html')) {
       });
     }
 
+    // Modalı kapatma
     if(closeModalBtn) {
       closeModalBtn.addEventListener('click', () => {
           roomsModal.style.display = 'none';
       });
     }
 
+    // Uygulama başladığında genel odayı aç
     switchRoom('general');
 }
