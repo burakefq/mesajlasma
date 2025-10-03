@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
@@ -13,16 +13,34 @@
     <div class="auth-container">
         <img src="https://pbs.twimg.com/profile_images/1258677537510764546/S3WhrKLo_400x400.jpg" alt="Okul Logosu" class="school-logo">
         <h2>Hoş Geldin!</h2>
-        <p>Giriş yap veya kaydol</p>
+        <p>E-posta veya Telefon ile Giriş Yap</p>
+
         <form id="auth-form">
             <input type="email" id="email" placeholder="E-posta" required>
             <input type="password" id="password" placeholder="Şifre" required>
-            <button type="submit" id="login-btn">Giriş Yap</button>
+            <button type="submit" id="login-btn">E-posta ile Giriş Yap</button>
             <button type="button" id="signup-btn">Kaydol</button>
         </form>
+
         <div class="password-reset-container">
             <a href="#" id="forgot-password-link">Şifremi unuttum?</a>
         </div>
+
+        <hr style="margin: 20px 0; border-top: 1px solid #ccc;">
+
+        <div id="phone-auth-container">
+            <input type="tel" id="phone-number" placeholder="Telefon Numarası (+90 5XX XXX XX XX)" required>
+
+            <div id="recaptcha-container"></div>
+
+            <button type="button" id="send-code-btn">Doğrulama Kodu Gönder</button>
+
+            <div id="verification-area" style="display: none;">
+                <input type="number" id="verification-code" placeholder="SMS Kodunu Girin" maxlength="6">
+                <button type="button" id="verify-code-btn">Giriş Yap</button>
+            </div>
+        </div>
+
         <p id="error-message"></p>
     </div>
 
@@ -33,4 +51,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
